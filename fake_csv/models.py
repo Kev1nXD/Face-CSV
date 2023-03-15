@@ -1,3 +1,5 @@
+import os
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -54,5 +56,5 @@ class DataSet(models.Model):
         ('PROCESSING', 'Processing'),
         ('READY', 'Ready')
     ), default='PROCESSING')
-    file = models.FileField(upload_to=settings.MEDIA_ROOT, null=True)
+    file = models.FileField(upload_to=os.path.join(settings.MEDIA_ROOT), null=True)
     created_at = models.DateTimeField(auto_now_add=True)
