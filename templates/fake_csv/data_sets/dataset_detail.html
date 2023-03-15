@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load crispy_forms_filters %}
+
+{% block content %}
+
+<div class="d-flex">
+  <h1>Sample schema</h1>
+  <a href="{% url 'schemas:schema-edit' pk=schema.id %}" class="link-primary text-decoration-none mt-auto mb-auto ms-3">Edit schemas</a>
+</div>
+
+{% if schema.columns.all %}
+  <table class="table-bordered table">
+    <tr>
+      <th>#</th>
+      <th>Column name</th>
+      <th>Column type</th>
+    </tr>
+      {% for column in schema.columns.all %}
+        <tr>
+          <td>{{ column.id }}</td>
+          <td>{{ column.name }}</td>
+          <td>{{ column.data_type }}</td>
+        </tr>
+      {% endfor %}
+  </table>
+{% else %}
+  <p>No columns found.</p>
+{% endif %}
+<div class="d-flex">
+ <h2>Generated Data:</h2>
+  <form id="generate-data-form" method="POST" class="ms-auto d-inline-flex align-items-center justify-content-center">
+    {% csrf_token %}
+    <div class="me-2">{{ form }}</div>
+    <button type="submit" id="generate-csv-btn" class="btn btn-success">Generate Data</button>
+  </form>
+</div>
+{% if schema.columns.all %}
+  <div class="datasets-container">
+    <table class="table-bordered table">
+      <tbody id="datasets-container">
+        <tr>
+        <th>#</th>
+        <th>Created</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+      {% for dataset in schema.datasets.all %}
+        <tr>
+          <td>{{ dataset.id }}</td>
+          <td>{{ dataset.created_at }}</td>
+          <td>{{ dataset.status }}</td>
+          {% if dataset.file %}
+            <td><a href={{ dataset.file.url }}>Download</a></td>
+          {% else %}
+            <td><p>-</p></td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+<script>
+  const generateDataForm = document.querySelector('#generate-data-form');
+const datasetsContainer = document.querySelector('#datasets-container');
+const generateCsvBtn = document.querySelector('#generate-csv-btn');
+
+generateDataForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  generateCsvBtn.disabled = true;
+  fetch(event.target.action, {
+    method: 'POST',
+    body: new FormData(event.target)
+  })
+  .then((response) => response.json())
+  .then((data) => {
+    // Create a new promise that resolves with the dataset ID
+    const datasetPromise = new Promise((resolve) => {
+      resolve(data.id);
+    });
+
+    // Create a new table row element
+    const tableRow = document.createElement('tr');
+
+    // Create a new table cell element for each piece of data and append it to the row
+    const idCell = document.createElement('td');
+    idCell.textContent = 'Generating...';
+    tableRow.appendChild(idCell);
+    tableRow.classList.add('table');
+
+    const createdAtCell = document.createElement('td');
+    createdAtCell.textContent = data.created_at;
+    tableRow.appendChild(createdAtCell);
+
+    const statusCell = document.createElement('td');
+    statusCell.textContent = 'Generating...';
+    tableRow.appendChild(statusCell);
+
+    const fileUrlCell = document.createElement('td');
+    const fileUrlLink = document.createElement('a');
+    fileUrlLink.href = '#';
+    fileUrlLink.textContent = 'Generating...';
+    fileUrlCell.appendChild(fileUrlLink);
+    tableRow.appendChild(fileUrlCell);
+    datasetsContainer.setAttribute("class", "")
+    datasetsContainer.append(tableRow);
+    datasetsContainer.setAttribute("class", "table-bordered table")
+
+    // When the dataset ID is available, update the table row with the dataset information
+    datasetPromise.then((datasetId) => {
+      idCell.textContent = datasetId;
+      statusCell.textContent = data.status;
+      fileUrlLink.href = data.file_url;
+      fileUrlLink.textContent = 'Download';
+      generateCsvBtn.disabled = false;
+    });
+  });
+});
+
+</script>
+
+{% endblock %}

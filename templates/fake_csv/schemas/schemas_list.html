@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load crispy_forms_filters %}
+{% csrf_token %}
+
+{% block content %}
+  <div class="row">
+    <h1 class="col">Data schemas</h1>
+    <a href="{% url 'schemas:schema-create' %}" class="btn-success btn col-auto m-2">New schema</a>
+
+
+  {% if schemas_list %}
+    <table class="table table-bordered">
+      <tr>
+        <th>#</th>
+        <th>Title</th>
+        <th>Modified</th>
+        <th>Actions</th>
+      </tr>
+
+      {% for schema in schemas_list %}
+        <tr>
+          <td>
+              {{ schema.id }}
+          </td>
+          <td>
+              <a href="{% url 'schemas:datasets' pk=schema.id  %}">
+                {{ schema.name }}
+              </a>
+          </td>
+          <td>
+              {{ schema.created_at }}
+          </td>
+          <td>
+              <a class="update"
+                href="{% url 'schemas:schema-edit' pk=schema.id %}">
+                Edit scheme
+              </a>
+              <a href="{% url 'schemas:schema-delete' pk=schema.id %}" class="delete-schema-link text-danger ml-3">
+                Delete
+              </a>
+            </td>
+        </tr>
+      {% endfor %}
+    </table>
+</div>
+  {% else %}
+      <p>There are no schema yet.</p>
+  {% endif %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(function() {
+    $('.delete-schema-link').click(function(event) {
+      event.preventDefault();
+      var deleteUrl = $(this).attr('href');
+
+      $.ajax({
+        url: deleteUrl,
+        type: 'POST',
+        data: {
+            csrfmiddlwaretoken:
+            "{{ scrf_token }}"
+        },
+        success: function(data) {
+          $(event.target).closest('tr').remove();
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

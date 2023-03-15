@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load crispy_forms_filters %}
+
+{% block content %}
+
+<div class="row">
+  <form method="POST">
+    {% csrf_token %}
+    <h1>New schema</h1>
+    <div class="schema-for d-flex align-items-lg-start">
+      <div class="col-5">{{ form|crispy }}</div>
+      <button type="submit" class="ms-auto btn-primary btn">submit</button>
+    </div>
+    {% if formset %}
+      <h1>Schema columns</h1>
+      {{ formset.management_form }}
+      <div id="column-form-list" class="form-group col-auto">
+          {% for form in formset %}
+            <div class="column-form d-flex align-items-center">
+              {{ form|crispy }}
+            </div>
+          {% endfor %}
+      </div>
+    <div id="empty-column-form" class="hidden" style="display: none">
+      {{ formset.empty_form|crispy }}
+      <button class="ps-3 pt-3 text-danger text-decoration-none btn btn-link" id="remove-empty-column-btn">Delete</button>
+    </div>
+    <button id="add-column" type="button" class="btn-primary btn mb-3">Add column</button>
+    {% endif %}
+  </form>
+</div>
+<script>
+    const add_column_btn = document.getElementById("add-column")
+    const delete_column_btn = document.getElementById("remove-empty-column-btn")
+    const total_new_forms = document.getElementById("id_form-TOTAL_FORMS")
+    const total_old_forms = parseInt(document.getElementById("id_form-INITIAL_FORMS").value)
+
+    for (let i = 0; i < total_old_forms; i++) {
+          const data_type_field = document.getElementById(`id_form-${i}-data_type`)
+          const range_from_label = document.querySelector('label[for="id_form-' + i + '-range_from"]')
+          const range_from_input = document.getElementById(`id_form-${i}-range_from`)
+          const range_to_label = document.querySelector('label[for="id_form-' + i + '-range_to"]')
+          const range_to_input = document.getElementById(`id_form-${i}-range_to`)
+
+          const div_data_type_field = document.getElementById(`div_id_form-${i}-data_type`)
+          const div_name_field = document.getElementById(`div_id_form-${i}-name`)
+          const div_order_field = document.getElementById(`div_id_form-${i}-order`)
+          const div_to_field = document.getElementById(`div_id_form-${i}-range_to`)
+          const div_from_field = document.getElementById(`div_id_form-${i}-range_from`)
+
+          div_data_type_field.setAttribute("class", "mb-3 p-3 col-3")
+          div_order_field.setAttribute("class", "mb-3 col-2 ms-auto")
+          div_name_field.setAttribute("class", "mb-3 pr-3 col-3")
+          div_to_field.setAttribute("class", "mb-3 ms-3 col-1")
+          div_from_field.setAttribute("class", "mb-3 col-1")
+
+
+          if (data_type_field.options[data_type_field.selectedIndex].value === "Integer" || data_type_field.options[data_type_field.selectedIndex].value === "Text") {
+            range_from_input.setAttribute("style", "")
+            range_from_label.setAttribute("style", "")
+            range_to_label.setAttribute("style", "")
+            range_to_input.setAttribute("style", "")
+          }
+          else {
+            range_from_input.setAttribute("style", "display: none")
+            range_from_label.setAttribute("style", "display: none")
+            range_to_label.setAttribute("style", "display: none")
+            range_to_input.setAttribute("style", "display: none")
+          }
+        data_type_field.addEventListener("change", add_range_fields)
+
+        function add_range_fields(event) {
+            if (event) {
+                event.preventDefault()
+            }
+            if (data_type_field.options[data_type_field.selectedIndex].value === "Integer" || data_type_field.options[data_type_field.selectedIndex].value === "Text") {
+              range_from_input.setAttribute("style", "")
+              range_from_label.setAttribute("style", "")
+              range_to_label.setAttribute("style", "")
+              range_to_input.setAttribute("style", "")
+            }
+            else {
+              range_from_input.setAttribute("style", "display: none")
+              range_from_label.setAttribute("style", "display: none")
+              range_to_label.setAttribute("style", "display: none")
+              range_to_input.setAttribute("style", "display: none")
+            }
+        }
+    }
+
+    add_column_btn.addEventListener("click", add_new_form)
+
+    function add_new_form(event) {
+      if (event) {
+          event.preventDefault()
+      }
+
+      const current_column_forms = document.getElementsByClassName("new-column-form")
+      let current_form_count = current_column_forms.length + total_old_forms
+      const column_form_copy = document.getElementById("column-form-list")
+      const copy_empty_column_form = document.getElementById("empty-column-form").cloneNode(true)
+      copy_empty_column_form.setAttribute("style", "")
+      copy_empty_column_form.setAttribute("id", `form-${current_form_count}`)
+      copy_empty_column_form.setAttribute("class", "new-column-form d-flex align-items-center")
+      const regex = new RegExp("__prefix__", "g")
+      copy_empty_column_form.innerHTML = copy_empty_column_form.innerHTML.replace(regex, current_form_count)
+      total_new_forms.setAttribute("value", current_form_count + 1)
+
+      column_form_copy.append(copy_empty_column_form)
+
+      const data_range_from_field = document.getElementById(`id_form-${current_form_count}-range_from`)
+      data_range_from_field.setAttribute("style", "display: none")
+      const data_range_from_label = `id_form-${current_form_count}-range_from`
+      const data_range_from_field_label = document.querySelector('label[for="' + data_range_from_label + '"]')
+      data_range_from_field_label.setAttribute("style", "display: none")
+      const data_range_to_label = `id_form-${current_form_count}-range_to`
+      const data_range_to_field = document.getElementById(`id_form-${current_form_count}-range_to`)
+      const data_range_to_field_label = document.querySelector('label[for="' + data_range_to_label + '"]')
+      data_range_to_field_label.setAttribute("style", "display: none")
+      data_range_to_field.setAttribute("style", "display: none")
+
+      const div_data_type_field = document.getElementById(`div_id_form-${current_form_count}-data_type`)
+      const div_name_field = document.getElementById(`div_id_form-${current_form_count}-name`)
+      const div_order_field = document.getElementById(`div_id_form-${current_form_count}-order`)
+      const div_to_field = document.getElementById(`div_id_form-${current_form_count}-range_to`)
+      const div_from_field = document.getElementById(`div_id_form-${current_form_count}-range_from`)
+
+      div_data_type_field.setAttribute("class", "mb-3 p-3 col-3")
+      div_order_field.setAttribute("class", "mb-3 col-2 ms-auto")
+      div_name_field.setAttribute("class", "mb-3 pr-3 col-3")
+      div_to_field.setAttribute("class", "mb-3 ms-3 col-1")
+      div_from_field.setAttribute("class", "mb-3 col-1")
+
+
+      const data_type_field = document.getElementById(`id_form-${current_form_count}-data_type`)
+      data_type_field.addEventListener("change", add_range_fields)
+
+      function add_range_fields(event) {
+          if (event) {
+              event.preventDefault()
+          }
+          if (data_type_field.options[data_type_field.selectedIndex].value === "Integer" || data_type_field.options[data_type_field.selectedIndex].value === "Text") {
+            data_range_from_field.setAttribute("style", "")
+            data_range_from_field_label.setAttribute("style", "")
+            data_range_to_field_label.setAttribute("style", "")
+            data_range_to_field.setAttribute("style", "")
+          }
+          else {
+            data_range_from_field.setAttribute("style", "display: none")
+            data_range_from_field_label.setAttribute("style", "display: none")
+            data_range_to_field_label.setAttribute("style", "display: none")
+            data_range_to_field.setAttribute("style", "display: none")
+          }
+      }
+    }
+  </script>
+  <script>
+        $(function() {
+    $('.delete-schema-link').click(function(event) {
+      event.preventDefault();
+      var deleteUrl = $(this).attr('href');
+
+      $.ajax({
+        url: deleteUrl,
+        method: 'DELETE',
+        success: function(data) {
+          $(event.target).closest('tr').remove();
+        }
+      });
+    });
+  });
+  </script>
+
+{% endblock  %}

@@ -1,0 +1,15 @@
+asgiref==3.6.0
+beautifulsoup4==4.11.2
+crispy-bootstrap5==0.7
+Django==4.1.7
+django-bootstrap4==22.3
+django-crispy-forms==2.0
+django-htmx==1.14.0
+Faker==17.6.0
+python-dateutil==2.8.2
+python-slugify==8.0.1
+six==1.16.0
+soupsieve==2.4
+sqlparse==0.4.3
+text-unidecode==1.3
+tzdata==2022.7
