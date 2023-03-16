@@ -36,7 +36,7 @@ class CreateSchemaView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
-        if formset.is_valid():
+        if all([formset.is_valid(), form.is_valid()]):
             self.object = form.save(commit=False)
             self.object.user = self.request.user
             self.object.save()

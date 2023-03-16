@@ -18,7 +18,7 @@
     </tr>
       {% for column in schema.columns.all %}
         <tr>
-          <td>{{ column.id }}</td>
+          <td class="fw-bold">{{ column.id }}</td>
           <td>{{ column.name }}</td>
           <td>{{ column.data_type }}</td>
         </tr>
@@ -47,12 +47,13 @@
       </tr>
       {% for dataset in schema.datasets.all %}
         <tr>
-          <td>{{ dataset.id }}</td>
+          <td class="fw-bold">{{ dataset.id }}</td>
           <td>{{ dataset.created_at }}</td>
-          <td class="file-status">{{ dataset.status }}</td>
           {% if dataset.file %}
+            <td class="file-status"><span class="badge bg-success">{{ dataset.status }}</span></td>
             <td><a href={{ dataset.file.url }}>Download</a></td>
           {% else %}
+            <td class="file-status"><span class="badge bg-secondary">{{ dataset.status }}</span></td>
             <td class="url-update"></td>
           {% endif %}
         </tr>
@@ -63,33 +64,26 @@
 {% endif %}
 
 <script>
-// Create a function to update the dataset status and file URL in the table
 function updateDataset(datasetId, status, fileUrl) {
-  // Find the row with the dataset ID
   const row = document.querySelector(`tr[data-id="${datasetId}"]`);
   console.log(row)
 
-  // Update the status cell
   const statusCell = row.querySelector('.status');
-  console.log(statusCell)
+  statusCell.setAttribute("class", "badge bg-success")
   statusCell.textContent = status;
 
-  // Update the file URL cell
   const fileUrlCell = row.querySelector('.url-update');
   const fileUrlLink = document.createElement('a');
   fileUrlLink.href = fileUrl;
   fileUrlLink.textContent = 'Download';
-  fileUrlCell.textContent = '';
   fileUrlCell.appendChild(fileUrlLink);
 }
 
-// Add an event listener to the generate CSV button
 const generateCsvBtn = document.querySelector('#generate-csv-btn');
 generateCsvBtn.addEventListener('click', (event) => {
   event.preventDefault();
   generateCsvBtn.disabled = true;
 
-  // Send the form data to the view to create a new dataset instance
   const form = document.querySelector('#generate-data-form');
   const dataset = new FormData(form);
   fetch(form.action, {
@@ -98,11 +92,11 @@ generateCsvBtn.addEventListener('click', (event) => {
   })
   .then((response) => response.json())
   .then((data) => {
-    // Add a new row to the table with the dataset information
     const row = document.createElement('tr');
     row.setAttribute('data-id', data.id);
 
     const idCell = document.createElement('td');
+    idCell.setAttribute("class", "fw-bold")
     idCell.textContent = data.id;
     row.appendChild(idCell);
 
@@ -111,8 +105,10 @@ generateCsvBtn.addEventListener('click', (event) => {
     row.appendChild(createdAtCell);
 
     const statusCell = document.createElement('td');
-    statusCell.setAttribute("class", "status")
-    statusCell.textContent = data.status;
+    const span = document.createElement('span')
+    span.textContent = data.status;
+    span.setAttribute("class", "status badge bg-secondary")
+    statusCell.append(span)
     row.appendChild(statusCell);
 
     const linkCell = document.createElement('td');
@@ -122,7 +118,6 @@ generateCsvBtn.addEventListener('click', (event) => {
     const tableBody = document.querySelector('#datasets-container');
     tableBody.appendChild(row);
 
-    // Send a second POST request to update the dataset status and file URL
     fetch(`/datasets/${data.id}/update/`, {
       method: 'POST',
       headers: {

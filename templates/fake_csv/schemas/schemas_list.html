@@ -19,7 +19,7 @@
 
       {% for schema in schemas_list %}
         <tr>
-          <td>
+          <td class="fw-bold">
               {{ schema.id }}
           </td>
           <td>
@@ -67,4 +67,7 @@ $(function() {
      });
    });
 </script>
+{% endblock %}
+{% block pagination %}
+  {% include "includes/pagination.html" %}
 {% endblock %}

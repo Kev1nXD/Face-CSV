@@ -54,8 +54,8 @@ class DataSet(models.Model):
     schema = models.ForeignKey(DataSchema, on_delete=models.CASCADE, related_name="datasets")
     rows = models.IntegerField()
     status = models.CharField(max_length=20, choices=(
-        ('PROCESSING', 'Processing'),
-        ('READY', 'Ready')
+        ('Processing', 'Processing'),
+        ('Ready', 'Ready')
     ), default='PROCESSING')
     file = models.FileField(upload_to=os.path.join(settings.MEDIA_ROOT), null=True)
     created_at = models.DateTimeField(auto_now_add=True)

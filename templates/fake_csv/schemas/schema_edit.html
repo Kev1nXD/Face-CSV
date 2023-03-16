@@ -19,7 +19,7 @@
           {% for form, column in nested %}
             <div class="column-form d-flex align-items-center">
               {{ form|crispy }}
-            <a href="{% url 'schemas:column-delete' pk=column.id %}" class="delete-column-link text-danger ml-3">
+            <a href="{% url 'schemas:column-delete' pk=column.id %}" class="delete-column-link mt-2 text-danger me-3 text-decoration-none">
               Delete
             </a>
             </div>
@@ -54,7 +54,7 @@
           const div_from_field = document.getElementById(`div_id_form-${i}-range_from`)
 
           div_data_type_field.setAttribute("class", "mb-3 p-3 col-3")
-          div_order_field.setAttribute("class", "mb-3 col-2 ms-auto")
+          div_order_field.setAttribute("class", "mb-3 col-2 ms-auto me-3")
           div_name_field.setAttribute("class", "mb-3 pr-3 col-3")
           div_to_field.setAttribute("class", "mb-3 ms-3 col-1")
           div_from_field.setAttribute("class", "mb-3 col-1")
