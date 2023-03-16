@@ -56,7 +56,8 @@
     delete_column_btn.addEventListener("click", function(event) {
     event.preventDefault()
     copy_empty_column_form.remove()
-    current_form_count -= 1
+    current_form_count = current_column_forms.length
+    total_new_forms.setAttribute("value", current_form_count)
     })
 
     column_form_copy.append(copy_empty_column_form)

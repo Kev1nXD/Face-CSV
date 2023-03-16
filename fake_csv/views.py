@@ -5,22 +5,22 @@ import uuid
 from datetime import datetime
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.forms import modelformset_factory
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, UpdateView, ListView, DetailView
 from faker import Faker
 from slugify import slugify
 
 from fake_csv_service import settings
 from .forms import SchemasForm, SchemasColumnForm, DataschemaForm
-from .models import Column, DataSchema
+from .models import Column, DataSchema, DataSet
 
 
-class CreateSchemaView(CreateView, LoginRequiredMixin):
+class CreateSchemaView(LoginRequiredMixin, CreateView):
     template_name = "fake_csv/schemas/schema_create.html"
     form_class = SchemasForm
     success_url = reverse_lazy("schemas:schemas-list")
@@ -38,6 +38,7 @@ class CreateSchemaView(CreateView, LoginRequiredMixin):
         formset = context['formset']
         if formset.is_valid():
             self.object = form.save(commit=False)
+            self.object.user = self.request.user
             self.object.save()
             for form in formset:
                 child = form.save(commit=False)
@@ -48,36 +49,15 @@ class CreateSchemaView(CreateView, LoginRequiredMixin):
             return self.render_to_response(self.get_context_data(form=form))
 
 
-class UpdateSchemaView(UpdateView, LoginRequiredMixin):
+class UpdateSchemaView(LoginRequiredMixin, UpdateView):
     template_name = "fake_csv/schemas/schema_edit.html"
     form_class = SchemasForm
     success_url = reverse_lazy("schemas:schemas-list")
 
-    # def post(self):
-    #     pass
-        # $(document).on('click', '.delete-column-btn', function(e)
-        # {
-        #     e.preventDefault();
-        # var
-        # btn = $(this);
-        # var
-        # url = btn.attr('href');
-        # $.ajax({
-        #     url: url,
-        #     method: 'DELETE',
-        #     success: function(response) {
-        #         btn.closest('tr').remove();
-        # },
-        # error: function(response)
-        # {
-        #     console.log(response);
-        # }
-        # });
-        # });
-
     def get_object(self, queryset=None):
         pk = self.kwargs.get('pk')
-        return get_object_or_404(DataSchema, pk=pk)
+        user = self.request.user
+        return get_object_or_404(DataSchema, pk=pk, user=user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -85,11 +65,13 @@ class UpdateSchemaView(UpdateView, LoginRequiredMixin):
             context['formset'] = modelformset_factory(Column, form=SchemasColumnForm, extra=0)(
                 self.request.POST, queryset=self.object.columns.all()
             )
-            context['object'] = self.get_object()
         else:
             context['formset'] = modelformset_factory(Column, form=SchemasColumnForm, extra=0)(
                 queryset=self.object.columns.all()
             )
+            columns = self.object.columns.all()
+            context['columns'] = [i for i in columns]
+            context['nested'] = zip(context['formset'], context['columns'])
         return context
 
     def form_valid(self, form):
@@ -107,32 +89,39 @@ class UpdateSchemaView(UpdateView, LoginRequiredMixin):
             return self.render_to_response(self.get_context_data(form=form))
 
 
-class DeleteColumnView(View, LoginRequiredMixin):
-    def get(self, request, pk, *args, **kwargs):
+class DeleteColumnView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
         column = Column.objects.get(pk=pk)
         column.delete()
+        return HttpResponse(status=200)
 
 
-class SchemasListView(ListView, LoginRequiredMixin):
+class SchemasListView(LoginRequiredMixin, ListView):
     model = DataSchema
     ordering = ['-created_at']
     context_object_name = "schemas_list"
     template_name = "fake_csv/schemas/schemas_list.html"
     paginate_by = 5
 
+    def get_queryset(self):
+        return self.model.objects.filter(user=self.request.user.id)
 
-class DeleteSchemaView(View, LoginRequiredMixin):
-    @csrf_exempt
-    def get(self, request, pk, *args, **kwargs):
+
+class DeleteSchemaView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
         schema = DataSchema.objects.get(pk=pk)
         schema.delete()
+        return HttpResponse(status=200)
 
 
-class DatasetView(DetailView, LoginRequiredMixin):
+class DatasetView(LoginRequiredMixin, DetailView):
     model = DataSchema
     context_object_name = "schema"
     form_class = DataschemaForm
     template_name = "fake_csv/data_sets/dataset_detail.html"
+
+    def get_queryset(self):
+        return self.model.objects.filter(user=self.request.user.id)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -144,6 +133,25 @@ class DatasetView(DetailView, LoginRequiredMixin):
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            dataset = form.save(commit=False)
+            dataset.schema = self.object
+            dataset.save()
+            created_at = datetime.fromisoformat(str(dataset.created_at))
+            return JsonResponse({
+                "id": dataset.pk,
+                "created_at": created_at.strftime("%B %d, %Y, %I:%M %p").replace(" 0", " ").replace("AM", "a.m.").replace("PM", "p.m."),
+                "status": dataset.status
+            })
+        else:
+            context = self.get_context_data(object=self.object, form=form)
+            return self.render_to_response(context)
+
+
+class GenerateFileView(LoginRequiredMixin, View):
     @staticmethod
     def generate_csv(schema, rows):
         fake = Faker()
@@ -172,15 +180,16 @@ class DatasetView(DetailView, LoginRequiredMixin):
                     row[column.name] = fake.company()
                 elif data_type == 'Text':
                     sentences_number = random.randint(range_from, range_to)
-                    row[column.name] = fake.paragraph(variable_nb_sentences=True, nb_sentences=sentences_number)
+                    row[column.name] = fake.paragraph(variable_nb_sentences=True,
+                                                      nb_sentences=sentences_number)
                 elif data_type == 'Integer':
                     row[column.name] = fake.random_int(min=range_from, max=range_to)
                 elif data_type == 'Address':
                     row[column.name] = fake.address()
                 elif data_type == 'Date':
                     row[column.name] = fake.date()
-
             data.append(row)
+
         filename = f"{slugify(fake.word())}-{uuid.uuid4()}.csv"
         filepath = os.path.join(settings.MEDIA_ROOT, filename)
 
@@ -197,26 +206,17 @@ class DatasetView(DetailView, LoginRequiredMixin):
 
         return filepath
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        form = self.form_class(request.POST)
-        if form.is_valid():
-            dataset = form.save(commit=False)
-            dataset.schema = self.object
+    def post(self, request, pk, *args, **kwargs):
+        dataset = DataSet.objects.get(pk=pk)
+        with transaction.atomic():
             dataset.file = self.generate_csv(
                 DataSchema.objects.get(pk=dataset.schema.pk),
-                form.cleaned_data["rows"]
+                dataset.rows
             )
             dataset.status = "READY"
             dataset.save()
-            created_at = datetime.fromisoformat(str(dataset.created_at))
-            return JsonResponse({
-                "id": dataset.pk,
-                "created_at": created_at.strftime("%B %d, %Y, %I:%M %p").replace(" 0", " ").replace("AM", "a.m.").replace("PM", "p.m."),
-                "status": dataset.status,
-                "file_url": dataset.file.url,
-                "filename": "dataset.csv",
-            })
-        else:
-            context = self.get_context_data(object=self.object, form=form)
-            return self.render_to_response(context)
+        return JsonResponse({
+            "id": dataset.pk,
+            "status": dataset.status,
+            "file_url": dataset.file.url
+        })

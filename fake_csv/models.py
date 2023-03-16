@@ -1,5 +1,6 @@
 import os
 
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -16,6 +17,7 @@ class DataSchema(models.Model):
         ("“", "Double-quote (“)"),
         ("‘", "Apostrophes (‘)")
     )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     column_separator = models.CharField(choices=COLUMN_SEPARATORS, max_length=1)
     string_character = models.CharField(choices=STRING_CHARACTER, max_length=1)
@@ -35,7 +37,6 @@ class Column(models.Model):
         ('Address', 'Address'),
         ('Date', 'Date'),
     )
-
     schema = models.ForeignKey(DataSchema, on_delete=models.CASCADE, related_name='columns')
     name = models.CharField(max_length=255)
     data_type = models.CharField(choices=TYPES, max_length=255)

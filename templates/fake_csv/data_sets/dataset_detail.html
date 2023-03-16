@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load crispy_forms_filters %}
+{% csrf_token %}
 
 {% block content %}
 
@@ -48,11 +49,11 @@
         <tr>
           <td>{{ dataset.id }}</td>
           <td>{{ dataset.created_at }}</td>
-          <td>{{ dataset.status }}</td>
+          <td class="file-status">{{ dataset.status }}</td>
           {% if dataset.file %}
             <td><a href={{ dataset.file.url }}>Download</a></td>
           {% else %}
-            <td><p>-</p></td>
+            <td class="url-update"></td>
           {% endif %}
         </tr>
       {% endfor %}
@@ -62,57 +63,77 @@
 {% endif %}
 
 <script>
-  const generateDataForm = document.querySelector('#generate-data-form');
-const datasetsContainer = document.querySelector('#datasets-container');
-const generateCsvBtn = document.querySelector('#generate-csv-btn');
+// Create a function to update the dataset status and file URL in the table
+function updateDataset(datasetId, status, fileUrl) {
+  // Find the row with the dataset ID
+  const row = document.querySelector(`tr[data-id="${datasetId}"]`);
+  console.log(row)
 
-generateDataForm.addEventListener('submit', (event) => {
+  // Update the status cell
+  const statusCell = row.querySelector('.status');
+  console.log(statusCell)
+  statusCell.textContent = status;
+
+  // Update the file URL cell
+  const fileUrlCell = row.querySelector('.url-update');
+  const fileUrlLink = document.createElement('a');
+  fileUrlLink.href = fileUrl;
+  fileUrlLink.textContent = 'Download';
+  fileUrlCell.textContent = '';
+  fileUrlCell.appendChild(fileUrlLink);
+}
+
+// Add an event listener to the generate CSV button
+const generateCsvBtn = document.querySelector('#generate-csv-btn');
+generateCsvBtn.addEventListener('click', (event) => {
   event.preventDefault();
   generateCsvBtn.disabled = true;
-  fetch(event.target.action, {
+
+  // Send the form data to the view to create a new dataset instance
+  const form = document.querySelector('#generate-data-form');
+  const dataset = new FormData(form);
+  fetch(form.action, {
     method: 'POST',
-    body: new FormData(event.target)
+    body: dataset
   })
   .then((response) => response.json())
   .then((data) => {
-    // Create a new promise that resolves with the dataset ID
-    const datasetPromise = new Promise((resolve) => {
-      resolve(data.id);
-    });
+    // Add a new row to the table with the dataset information
+    const row = document.createElement('tr');
+    row.setAttribute('data-id', data.id);
 
-    // Create a new table row element
-    const tableRow = document.createElement('tr');
-
-    // Create a new table cell element for each piece of data and append it to the row
     const idCell = document.createElement('td');
-    idCell.textContent = 'Generating...';
-    tableRow.appendChild(idCell);
-    tableRow.classList.add('table');
+    idCell.textContent = data.id;
+    row.appendChild(idCell);
 
     const createdAtCell = document.createElement('td');
     createdAtCell.textContent = data.created_at;
-    tableRow.appendChild(createdAtCell);
+    row.appendChild(createdAtCell);
 
     const statusCell = document.createElement('td');
-    statusCell.textContent = 'Generating...';
-    tableRow.appendChild(statusCell);
+    statusCell.setAttribute("class", "status")
+    statusCell.textContent = data.status;
+    row.appendChild(statusCell);
 
-    const fileUrlCell = document.createElement('td');
-    const fileUrlLink = document.createElement('a');
-    fileUrlLink.href = '#';
-    fileUrlLink.textContent = 'Generating...';
-    fileUrlCell.appendChild(fileUrlLink);
-    tableRow.appendChild(fileUrlCell);
-    datasetsContainer.setAttribute("class", "")
-    datasetsContainer.append(tableRow);
-    datasetsContainer.setAttribute("class", "table-bordered table")
+    const linkCell = document.createElement('td');
+    linkCell.setAttribute("class", "url-update")
+    row.appendChild(linkCell);
 
-    // When the dataset ID is available, update the table row with the dataset information
-    datasetPromise.then((datasetId) => {
-      idCell.textContent = datasetId;
-      statusCell.textContent = data.status;
-      fileUrlLink.href = data.file_url;
-      fileUrlLink.textContent = 'Download';
+    const tableBody = document.querySelector('#datasets-container');
+    tableBody.appendChild(row);
+
+    // Send a second POST request to update the dataset status and file URL
+    fetch(`/datasets/${data.id}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      }
+    })
+    .then((response) => response.json())
+    .then((fetched_data) => {
+
+      updateDataset(fetched_data.id, fetched_data.status, fetched_data.file_url);
       generateCsvBtn.disabled = false;
     });
   });

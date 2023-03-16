@@ -48,23 +48,23 @@
   {% endif %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-  $(function() {
-    $('.delete-schema-link').click(function(event) {
-      event.preventDefault();
-      var deleteUrl = $(this).attr('href');
+$(function() {
+     $('.delete-schema-link').click(function(event) {
+       event.preventDefault();
+       var deleteUrl = $(this).attr('href');
 
-      $.ajax({
-        url: deleteUrl,
-        type: 'POST',
-        data: {
-            csrfmiddlwaretoken:
-            "{{ scrf_token }}"
-        },
-        success: function(data) {
-          $(event.target).closest('tr').remove();
-        }
-      });
-    });
-  });
+       $.ajaxSetup({
+         data: {csrfmiddlewaretoken: '{{ csrf_token }}' },
+       });
+
+       $.ajax({
+         url: deleteUrl,
+         type: 'POST',
+         success: function(data) {
+           $(event.target).closest('tr').remove();
+         }
+       });
+     });
+   });
 </script>
 {% endblock %}
