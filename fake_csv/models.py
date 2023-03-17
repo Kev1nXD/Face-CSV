@@ -4,19 +4,11 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from fake_csv_service import settings
-
 
 class DataSchema(models.Model):
-    COLUMN_SEPARATORS = (
-        (",", "Comma (,)"),
-        (";", "Semicolon (;)")
-    )
+    COLUMN_SEPARATORS = ((",", "Comma (,)"), (";", "Semicolon (;)"))
 
-    STRING_CHARACTER = (
-        ("“", "Double-quote (“)"),
-        ("‘", "Apostrophes (‘)")
-    )
+    STRING_CHARACTER = (("“", "Double-quote (“)"), ("‘", "Apostrophes (‘)"))
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     column_separator = models.CharField(choices=COLUMN_SEPARATORS, max_length=1)
@@ -26,18 +18,20 @@ class DataSchema(models.Model):
 
 class Column(models.Model):
     TYPES = (
-        ('Full name', 'Full name'),
-        ('Job', 'Job'),
-        ('Email', 'Email'),
-        ('Domain name', 'Domain name'),
-        ('Phone number', 'Phone number'),
-        ('Company name', 'Company name'),
-        ('Text', 'Text'),
-        ('Integer', 'Integer'),
-        ('Address', 'Address'),
-        ('Date', 'Date'),
+        ("Full name", "Full name"),
+        ("Job", "Job"),
+        ("Email", "Email"),
+        ("Domain name", "Domain name"),
+        ("Phone number", "Phone number"),
+        ("Company name", "Company name"),
+        ("Text", "Text"),
+        ("Integer", "Integer"),
+        ("Address", "Address"),
+        ("Date", "Date"),
     )
-    schema = models.ForeignKey(DataSchema, on_delete=models.CASCADE, related_name='columns')
+    schema = models.ForeignKey(
+        DataSchema, on_delete=models.CASCADE, related_name="columns"
+    )
     name = models.CharField(max_length=255)
     data_type = models.CharField(choices=TYPES, max_length=255)
     range_from = models.IntegerField(null=True, blank=True)
@@ -47,15 +41,20 @@ class Column(models.Model):
     def clean(self):
         super().clean()
         if self.range_from and self.range_to and self.range_from > self.range_to:
-            raise ValidationError({'range_from': 'Range from must be less than or equal to range to.'})
+            raise ValidationError(
+                {"range_from": "Range from must be less than or equal to range to."}
+            )
 
 
 class DataSet(models.Model):
-    schema = models.ForeignKey(DataSchema, on_delete=models.CASCADE, related_name="datasets")
+    schema = models.ForeignKey(
+        DataSchema, on_delete=models.CASCADE, related_name="datasets"
+    )
     rows = models.IntegerField()
-    status = models.CharField(max_length=20, choices=(
-        ('Processing', 'Processing'),
-        ('Ready', 'Ready')
-    ), default='PROCESSING')
-    file = models.FileField(upload_to=os.path.join(settings.MEDIA_ROOT), null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=(("Processing", "Processing"), ("Ready", "Ready")),
+        default="PROCESSING",
+    )
+    file = models.FileField(upload_to=os.path.join("media/"), null=True)
     created_at = models.DateTimeField(auto_now_add=True)

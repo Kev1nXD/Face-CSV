@@ -23,6 +23,4 @@ class DataschemaForm(forms.ModelForm):
     class Meta:
         model = DataSet
         fields = ["rows"]
-        labels = {
-            "rows": "Rows"
-        }
+        labels = {"rows": "Rows"}
