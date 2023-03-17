@@ -22,28 +22,28 @@ def generate_csv(schema, rows):
             range_from = column.range_from
             range_to = column.range_to
             if data_type == "Full name":
-                row[column.name] = fake.name()
+                row[column.name] = fake.name().replace("\n", " ").replace(",", "")
             elif data_type == "Job":
-                row[column.name] = fake.job()
+                row[column.name] = fake.job().replace("\n", " ").replace(",", "")
             elif data_type == "Email":
-                row[column.name] = fake.email()
+                row[column.name] = fake.email().replace("\n", " ").replace(",", "")
             elif data_type == "Domain name":
-                row[column.name] = fake.domain_name()
+                row[column.name] = fake.domain_name().replace("\n", " ").replace(",", "")
             elif data_type == "Phone number":
                 row[column.name] = fake.phone_number()
             elif data_type == "Company name":
-                row[column.name] = fake.company()
+                row[column.name] = fake.company().replace("\n", " ").replace(",", "")
             elif data_type == "Text":
                 sentences_number = random.randint(range_from, range_to)
                 row[column.name] = fake.paragraph(
                     variable_nb_sentences=True, nb_sentences=sentences_number
-                )
+                ).replace("\n", " ").replace(",", "")
             elif data_type == "Integer":
                 row[column.name] = fake.random_int(min=range_from, max=range_to)
             elif data_type == "Address":
-                row[column.name] = fake.address()
+                row[column.name] = fake.address().replace("\n", " ").replace(",", "")
             elif data_type == "Date":
-                row[column.name] = fake.date()
+                row[column.name] = fake.date().replace("\n", " ").replace(",", "")
         data.append(row)
 
     filename = f"{slugify(fake.word())}-{uuid.uuid4()}.csv"
